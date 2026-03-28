@@ -1,0 +1,206 @@
+.stats-header {
+  padding: 40px 0 0;
+  margin-bottom: 24px;
+}
+
+.stats-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+}
+
+.stats-tab {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.88rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--white-60);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: all var(--transition);
+  margin-bottom: -1px;
+}
+
+.stats-tab:hover { color: var(--white); }
+
+.stats-tab--active {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+}
+
+/* ─── Leaders grid ───────────────────────────────────────── */
+.leaders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  padding-bottom: 80px;
+}
+
+/* ─── Leader Card ────────────────────────────────────────── */
+.leader-card {
+  background: var(--black-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.leader-card:hover {
+  border-color: var(--border-gold);
+  box-shadow: var(--shadow-gold);
+}
+
+.leader-card__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.leader-card__unit {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--gold);
+}
+
+.leader-card__label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.88rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--white-60);
+}
+
+/* ─── Top player ─────────────────────────────────────────── */
+.leader-card__top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.leader-card__avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--black-5);
+  border: 2px solid var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: var(--gold);
+}
+
+.leader-card__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.leader-card__info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.leader-card__name {
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--white);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.leader-card__team {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  color: var(--white-30);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.leader-card__value {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.8rem;
+  color: var(--gold);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* ─── Runner-up list ─────────────────────────────────────── */
+.leader-card__list {
+  padding: 8px 0 4px;
+}
+
+.leader-card__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+  transition: background var(--transition);
+}
+
+.leader-card__row:hover { background: var(--white-10); }
+
+.leader-card__rank {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.72rem;
+  color: var(--white-30);
+  min-width: 16px;
+}
+
+.leader-card__row-name {
+  flex: 1;
+  font-size: 0.82rem;
+  color: var(--white-80);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.leader-card__row-team {
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+.leader-card__row-val {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--white-80);
+  min-width: 40px;
+  text-align: right;
+}
+
+/* ─── Season stats table ─────────────────────────────────── */
+.stats-table-wrap {
+  margin-bottom: 80px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.stats-table-wrap .abl-table {
+  min-width: 880px;
+}

@@ -1,0 +1,257 @@
+.game-detail-back {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 28px 0 20px;
+}
+
+.back-link {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--white-60);
+  transition: color var(--transition);
+}
+.back-link:hover { color: var(--gold); }
+
+/* ─── Scoreboard ─────────────────────────────────────────── */
+.scoreboard {
+  background: var(--black-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 28px 32px;
+  margin-bottom: 32px;
+  position: relative;
+  overflow: hidden;
+}
+
+.scoreboard--live {
+  border-color: rgba(230, 57, 70, 0.25);
+}
+
+.scoreboard__live-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--live-red);
+  box-shadow: 0 0 16px var(--live-red);
+}
+
+.scoreboard__status {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+
+/* ─── Matchup ────────────────────────────────────────────── */
+.scoreboard__matchup {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.scoreboard__team {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.scoreboard__team--home {
+  flex-direction: row-reverse;
+}
+
+.scoreboard__logo {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.scoreboard__logo-placeholder {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--white);
+  flex-shrink: 0;
+}
+
+.scoreboard__team-name {
+  display: flex;
+  flex-direction: column;
+}
+
+.scoreboard__team-name--right {
+  text-align: right;
+}
+
+.scoreboard__city {
+  font-size: 0.72rem;
+  color: var(--white-30);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: var(--font-display);
+}
+
+.scoreboard__name {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.4rem;
+  text-transform: uppercase;
+  color: var(--white-80);
+  line-height: 1.1;
+}
+
+.scoreboard__team--winner .scoreboard__name {
+  color: var(--white);
+}
+
+.scoreboard__score {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 3.5rem;
+  color: var(--white-40);
+  line-height: 1;
+  min-width: 80px;
+  text-align: center;
+}
+
+.scoreboard__score--live {
+  color: var(--white);
+}
+
+.scoreboard__team--winner .scoreboard__score {
+  color: var(--gold);
+}
+
+.scoreboard__vs {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1rem;
+  color: var(--white-20);
+  letter-spacing: 0.1em;
+  flex-shrink: 0;
+}
+
+/* ─── Details row ────────────────────────────────────────── */
+.scoreboard__details {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+/* ─── Team Fouls ─────────────────────────────────────────── */
+.team-fouls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.team-fouls__label {
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--white-30);
+}
+
+.team-fouls__counts {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--white-80);
+}
+
+/* ─── Quarter scores ─────────────────────────────────────── */
+.quarter-scores {
+  flex: 1;
+  overflow-x: auto;
+}
+
+.quarter-table {
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  width: 100%;
+}
+
+.quarter-table th,
+.quarter-table td {
+  padding: 6px 14px;
+  text-align: center;
+  color: var(--white-60);
+  border-bottom: 1px solid var(--border);
+}
+
+.quarter-table th {
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--white-30);
+}
+
+.quarter-table th.active-q {
+  color: var(--gold);
+}
+
+.quarter-table td.team-label {
+  text-align: left;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--white-80);
+}
+
+.quarter-table td.total-col,
+.quarter-table th.total-col {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--white);
+  border-left: 1px solid var(--border);
+}
+
+/* ─── Box score section ──────────────────────────────────── */
+.game-detail-boxscore {
+  margin-bottom: 60px;
+}
+
+.game-detail-skeleton {
+  padding-top: 40px;
+}
+
+.game-detail-upcoming {
+  background: var(--black-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 40px;
+  text-align: center;
+  color: var(--white-60);
+  margin-bottom: 60px;
+}
+
+/* ─── Responsive ─────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .scoreboard { padding: 20px 16px; }
+  .scoreboard__logo,
+  .scoreboard__logo-placeholder { width: 48px; height: 48px; font-size: 0.85rem; }
+  .scoreboard__score { font-size: 2.5rem; }
+  .scoreboard__name { font-size: 1.1rem; }
+  .scoreboard__matchup { gap: 8px; }
+}

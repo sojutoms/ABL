@@ -1,0 +1,194 @@
+/* ─── Hero ───────────────────────────────────────────────── */
+.home-hero {
+  position: relative;
+  padding: 120px 0 80px;
+  overflow: hidden;
+}
+
+.home-hero__bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 60% at 60% 40%, rgba(245, 197, 24, 0.07) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 50% at 80% 80%, rgba(245, 197, 24, 0.04) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.home-hero__court-lines {
+  position: absolute;
+  bottom: -20px;
+  right: -60px;
+  width: 360px;
+  height: 360px;
+  border: 2px solid rgba(245, 197, 24, 0.05);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.home-hero__court-lines::before {
+  content: '';
+  position: absolute;
+  inset: 30px;
+  border: 2px solid rgba(245, 197, 24, 0.04);
+  border-radius: 50%;
+}
+
+.home-hero__content {
+  position: relative;
+  z-index: 1;
+}
+
+.home-hero__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--gold);
+  margin-bottom: 16px;
+}
+
+.home-hero__title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(3rem, 8vw, 6rem);
+  text-transform: uppercase;
+  line-height: 0.92;
+  letter-spacing: -0.01em;
+  color: var(--white);
+  margin-bottom: 16px;
+}
+
+.home-hero__title-gold {
+  color: var(--gold);
+  -webkit-text-stroke: 0px;
+}
+
+.home-hero__sub {
+  font-size: 1rem;
+  color: var(--white-60);
+  margin-bottom: 32px;
+}
+
+.home-hero__actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  background: var(--gold);
+  color: var(--black);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.88rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 12px 24px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+}
+
+.btn-primary:hover {
+  background: #ffd740;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(245, 197, 24, 0.3);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  background: transparent;
+  color: var(--white);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.88rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 12px 24px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  text-decoration: none;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.btn-secondary:hover {
+  border-color: var(--gold);
+  background: var(--gold-glow);
+  color: var(--gold);
+}
+
+/* ─── Sections ───────────────────────────────────────────── */
+.home-section {
+  padding: 48px 0;
+  border-top: 1px solid var(--border);
+}
+
+.home-section--last {
+  padding-bottom: 80px;
+}
+
+.home-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.see-all {
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--gold);
+  opacity: 0.8;
+  transition: opacity var(--transition);
+}
+
+.see-all:hover { opacity: 1; }
+
+/* ─── Games grid ─────────────────────────────────────────── */
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+/* ─── Team dot ───────────────────────────────────────────── */
+.team-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ─── Streak badge ───────────────────────────────────────── */
+.streak-badge {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 3px;
+}
+
+.streak-badge.w {
+  background: rgba(46, 194, 126, 0.15);
+  color: var(--green);
+}
+
+.streak-badge.l {
+  background: var(--live-red-glow);
+  color: var(--live-red);
+}
+
+@media (max-width: 768px) {
+  .home-hero { padding: 100px 0 60px; }
+  .games-grid { grid-template-columns: 1fr; }
+}

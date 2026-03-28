@@ -1,0 +1,177 @@
+.game-card {
+  background: var(--black-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  transition: border-color var(--transition), transform var(--transition), box-shadow var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.game-card--live {
+  border-color: rgba(230, 57, 70, 0.3);
+  box-shadow: 0 0 0 1px rgba(230, 57, 70, 0.1), 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.game-card--live::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--live-red);
+  box-shadow: 0 0 12px var(--live-red);
+}
+
+.game-card--clickable {
+  cursor: pointer;
+}
+
+.game-card--clickable:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-gold);
+  box-shadow: var(--shadow-gold);
+}
+
+.game-card--compact {
+  padding: 12px 16px;
+}
+
+/* ─── Header ─────────────────────────────────────────────── */
+.game-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.game-card__round {
+  font-size: 0.72rem;
+  color: var(--white-30);
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-left: auto;
+}
+
+/* ─── Teams ──────────────────────────────────────────────── */
+.game-card__teams {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.game-card__team {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.game-card__team-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.game-card__logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.game-card__logo-placeholder {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.75rem;
+  color: var(--white);
+  flex-shrink: 0;
+}
+
+.game-card--compact .game-card__logo,
+.game-card--compact .game-card__logo-placeholder {
+  width: 28px;
+  height: 28px;
+  font-size: 0.65rem;
+}
+
+.game-card__team-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.game-card__abbr {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.05rem;
+  text-transform: uppercase;
+  color: var(--white-80);
+  line-height: 1.1;
+}
+
+.game-card__full-name {
+  font-size: 0.72rem;
+  color: var(--white-30);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.game-card__team--winner .game-card__abbr {
+  color: var(--white);
+}
+
+/* ─── Score ──────────────────────────────────────────────── */
+.game-card__score {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.6rem;
+  color: var(--white-60);
+  min-width: 40px;
+  text-align: right;
+  line-height: 1;
+}
+
+.game-card__score--live {
+  color: var(--white);
+}
+
+.game-card__team--winner .game-card__score {
+  color: var(--gold);
+}
+
+/* ─── Footer ─────────────────────────────────────────────── */
+.game-card__footer {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.game-card__view-link {
+  font-size: 0.78rem;
+  color: var(--gold);
+  font-family: var(--font-display);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.8;
+  transition: opacity var(--transition);
+}
+
+.game-card--clickable:hover .game-card__view-link {
+  opacity: 1;
+}
