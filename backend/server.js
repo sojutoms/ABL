@@ -3,9 +3,9 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const connectDB = require('./config/db');
-const errorHandler = require('./middleware/errorHandler');
-const notFound = require('./middleware/notFound');
+const connectDB = require('./src/config/db');
+const errorHandler = require('./src/middleware/errorHandler');
+const notFound = require('./src/middleware/notFound');
 
 dotenv.config();
 
@@ -57,11 +57,11 @@ app.get('/api/health', (req, res) => {
 });
 
 // Routes
-app.use('/api/teams', require('./routes/teamRoutes'));
-app.use('/api/players', require('./routes/playerRoutes'));
-app.use('/api/games', require('./routes/gameRoutes'));
-app.use('/api/stats', require('./routes/statsRoutes'));
-app.use('/api/league', require('./routes/leagueRoutes'));
+app.use('/api/teams', require('./src/routes/teamRoutes'));
+app.use('/api/players', require('./src/routes/playerRoutes'));
+app.use('/api/games', require('./src/routes/gameRoutes'));
+app.use('/api/stats', require('./src/routes/statsRoutes'));
+app.use('/api/league', require('./src/routes/leagueRoutes'));
 
 // Error handling
 app.use(notFound);

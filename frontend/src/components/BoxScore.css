@@ -1,3 +1,7 @@
+/* ─────────────────────────────────────────────────────────
+   BoxScore.css  (frontend viewer)
+   ───────────────────────────────────────────────────────── */
+
 .boxscore {
   background: var(--black-3);
   border: 1px solid var(--border);
@@ -6,13 +10,13 @@
 }
 
 .boxscore-empty {
-  padding: 40px;
+  padding: 48px;
   text-align: center;
   color: var(--white-30);
   font-style: italic;
 }
 
-/* ─── Tabs ───────────────────────────────────────────────── */
+/* ── Tabs ─────────────────────────────────────────────── */
 .boxscore__tabs {
   display: flex;
   border-bottom: 1px solid var(--border);
@@ -55,6 +59,8 @@
   object-fit: contain;
 }
 
+.boxscore__tab-abbr { font-weight: 800; }
+
 .boxscore__tab-name {
   font-weight: 400;
   color: var(--white-30);
@@ -66,50 +72,104 @@
   opacity: 0.7;
 }
 
-/* ─── Table ──────────────────────────────────────────────── */
+/* ── Table wrapper ────────────────────────────────────── */
 .boxscore__table-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
 
-.boxscore__table {
-  min-width: 900px;
+.boxscore__table { min-width: 920px; }
+
+/* ── Section dividers ─────────────────────────────────── */
+.bs-section-header td {
+  padding: 5px 12px;
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  border-bottom: 1px solid var(--border);
+  border-top: 1px solid var(--border);
 }
 
-/* ─── Player cell ────────────────────────────────────────── */
-.player-cell {
+.bs-section-label--starters {
+  color: var(--gold);
+  background: rgba(245, 197, 24, 0.04);
+}
+
+.bs-section-label--bench {
+  color: var(--white-30);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.bs-section-label--dnp {
+  color: var(--white-20);
+  background: var(--black-4);
+}
+
+/* ── Player cell ──────────────────────────────────────── */
+.bs-player-cell {
   display: flex !important;
   align-items: center;
   gap: 8px;
-  min-width: 180px;
+  min-width: 195px;
   text-align: left !important;
+  padding: 8px 12px !important;
 }
 
-.player-number {
+/* Jersey number badge — larger, clearly visible */
+.bs-jersey {
   font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 0.78rem;
-  color: var(--white-30);
-  min-width: 28px;
+  font-weight: 900;
+  font-size: 1rem;
+  color: var(--gold);
+  min-width: 34px;
+  text-align: center;
+  background: var(--black-5);
+  border: 1.5px solid rgba(245,197,24,0.3);
+  border-radius: 6px;
+  padding: 2px 6px;
+  flex-shrink: 0;
+  line-height: 1.4;
 }
 
-.player-name {
-  font-weight: 500;
+.row--bench-player .bs-jersey {
+  color: var(--white-60);
+  border-color: var(--border);
+}
+
+.row--dnp .bs-jersey {
+  color: var(--white-20);
+  border-color: transparent;
+}
+
+.bs-player-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.bs-player-name {
+  font-weight: 600;
+  font-size: 0.88rem;
   color: var(--white-80);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.player-pos {
-  font-size: 0.72rem;
+.row--bench-player .bs-player-name { color: var(--white-60); }
+.row--dnp .bs-player-name          { color: var(--white-30); }
+
+.bs-player-pos {
+  font-size: 0.66rem;
   color: var(--white-30);
-  background: var(--white-10);
-  padding: 1px 5px;
-  border-radius: 3px;
   font-family: var(--font-display);
   text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
-.starter-dot {
+.bs-starter-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -117,41 +177,63 @@
   flex-shrink: 0;
 }
 
-/* ─── Special cells ──────────────────────────────────────── */
-.pts-cell {
+/* ── Row variants ─────────────────────────────────────── */
+.row--starter { background: transparent; }
+.row--starter:hover { background: var(--white-10); }
+
+.row--bench-player { background: rgba(0, 0, 0, 0.15); }
+.row--bench-player:hover { background: var(--white-10); }
+
+.row--dnp td { opacity: 0.35; }
+
+/* ── Stat cells ───────────────────────────────────────── */
+.bs-pts {
   font-family: var(--font-display);
-  font-weight: 700 !important;
+  font-weight: 800 !important;
   font-size: 1rem !important;
   color: var(--white) !important;
 }
 
-.split-cell {
+.row--bench-player .bs-pts {
+  color: var(--white-60) !important;
+  font-size: 0.9rem !important;
+}
+
+.bs-split {
   color: var(--white-60) !important;
   font-size: 0.82rem !important;
+}
+
+.bs-pf { color: var(--white-80); }
+
+.bs-pf--out {
+  color: var(--live-red) !important;
+  font-weight: 700 !important;
+}
+
+.bs-dnp {
+  color: var(--white-30) !important;
+  font-style: italic;
+  font-size: 0.8rem !important;
+  text-align: center !important;
 }
 
 .pm-cell {
   font-family: var(--font-display);
   font-weight: 700 !important;
+  color: var(--white-60);
 }
 
-.pm-cell.plus { color: var(--green) !important; }
-.pm-cell.minus { color: var(--live-red) !important; }
+.pm-cell--plus  { color: var(--green) !important; }
+.pm-cell--minus { color: var(--live-red) !important; }
 
-/* ─── DNP / Totals ───────────────────────────────────────── */
-.dnp-row td { opacity: 0.4; }
-.dnp-cell {
-  color: var(--white-30) !important;
-  font-style: italic;
-  font-size: 0.8rem !important;
-}
-
-.totals-row {
+/* ── Totals row ───────────────────────────────────────── */
+.bs-totals {
   background: var(--black-4) !important;
   border-top: 2px solid var(--border) !important;
 }
 
-.totals-row td {
+.bs-totals td {
   font-family: var(--font-display) !important;
   font-weight: 700 !important;
   font-size: 0.82rem !important;
@@ -159,7 +241,9 @@
   border-bottom: none !important;
 }
 
-.totals-row td:first-child {
+.bs-totals__label {
   color: var(--gold) !important;
   letter-spacing: 0.08em;
+  text-align: left !important;
+  padding-left: 12px !important;
 }
