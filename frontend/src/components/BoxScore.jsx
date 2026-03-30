@@ -30,9 +30,9 @@ const COLUMNS = [
 ];
 
 // Jersey number circle — shows number, not initials
-const JerseyBadge = ({ number }) => (
-  <span className="jersey-badge">#{number}</span>
-);
+// const JerseyBadge = ({ number }) => (
+//   <span className="jersey-badge">#{number}</span>
+// );
 
 const StatRow = ({ stat, isStarter }) => {
   const pm      = stat.plusMinus ?? 0;

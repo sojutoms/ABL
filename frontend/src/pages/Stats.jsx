@@ -30,7 +30,7 @@ const SEASON_COLS = [
 ];
 
 const fmtPct = (v) => v ? (v * 100).toFixed(1) : '0.0';
-const fmtVal = (v, isPct) => isPct ? fmtPct(v) + '%' : (v?.toFixed ? v.toFixed(1) : v ?? '-');
+// const fmtVal = (v, isPct) => isPct ? fmtPct(v) + '%' : (v?.toFixed ? v.toFixed(1) : v ?? '-');
 
 const LeaderCard = ({ cat, leaders }) => {
   const top = leaders?.[0];
