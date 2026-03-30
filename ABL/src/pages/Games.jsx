@@ -198,9 +198,15 @@ export default function Games() {
                         <td className="muted small">{game.venue || '—'}</td>
                         <td>
                           <div style={{ display:'flex', gap:6 }}>
-                            <Link to={`/games/${game._id}/score`} className="btn btn-gold btn-sm">Score</Link>
-                            <button className="btn btn-outline btn-sm" onClick={() => setModal(game)}>Edit</button>
-                            <button className="btn btn-red btn-sm" onClick={() => handleDelete(game)}>✕</button>
+                            {game.status !== 'final' && (
+                              <Link to={`/games/${game._id}/score`} className="btn btn-gold btn-sm">Score</Link>
+                            )}
+                            <Link to={`/games/${game._id}/manage`} className="btn btn-outline btn-sm">
+                              {game.status === 'final' ? '👁 View' : 'Edit'}
+                            </Link>
+                            {game.status !== 'final' && (
+                              <button className="btn btn-red btn-sm" onClick={() => handleDelete(game)}>✕</button>
+                            )}
                           </div>
                         </td>
                       </tr>
