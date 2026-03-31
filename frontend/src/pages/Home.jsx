@@ -26,7 +26,7 @@ const Home = () => {
             {liveGames.length > 0 ? `${liveGames.length} Game${liveGames.length > 1 ? 's' : ''} Live Now` : '2025 Season'}
           </p>
           <h1 className="home-hero__title">
-            ABL <span className="home-hero__title-gold">Basketball</span><br />League
+            ABL <span className="home-hero__title-gold">South</span><br />Hoops
           </h1>
           <p className="home-hero__sub">Official stats, schedules & standings</p>
           <div className="home-hero__actions">

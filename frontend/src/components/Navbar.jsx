@@ -5,7 +5,7 @@ import './Navbar.css';
 
 // ── Replace this with your actual logo import once you have the file:
 // import logoImg from '../assets/abl-logo.png';
-const LOGO_SRC = '/abl.png';
+const LOGO_SRC = '/favicon.ico';
 
 const FacebookIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
