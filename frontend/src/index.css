@@ -239,6 +239,17 @@ input, select { font-family: inherit; }
 
 /* ─── Responsive ─────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .container { padding: 0 16px; }
-  .section-title { font-size: 1.5rem; }
+  .container     { padding: 0 16px; }
+  .section-title { font-size: 1.4rem; }
+  .abl-table th,
+  .abl-table td  { padding: 9px 10px; font-size: 0.82rem; }
+}
+
+@media (max-width: 480px) {
+  .container     { padding: 0 12px; }
+  .section-title { font-size: 1.25rem; }
+  .page          { padding-top: 68px; }
+  .abl-table th,
+  .abl-table td  { padding: 8px 8px; font-size: 0.78rem; }
+  body           { overflow-x: hidden; }
 }

@@ -1,16 +1,23 @@
+/* ─────────────────────────────────────────────────────────
+   GameCard.css — mobile-first
+   ───────────────────────────────────────────────────────── */
+
 .game-card {
   background: var(--black-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 16px 20px;
-  transition: border-color var(--transition), transform var(--transition), box-shadow var(--transition);
+  padding: 16px;
+  transition: border-color 0.18s, transform 0.18s, box-shadow 0.18s;
   position: relative;
   overflow: hidden;
+  /* Ensure card never collapses below its content */
+  min-width: 0;
+  width: 100%;
 }
 
 .game-card--live {
-  border-color: rgba(230, 57, 70, 0.3);
-  box-shadow: 0 0 0 1px rgba(230, 57, 70, 0.1), 0 4px 20px rgba(0, 0, 0, 0.3);
+  border-color: rgba(230,57,70,0.3);
+  box-shadow: 0 0 0 1px rgba(230,57,70,0.1), 0 4px 20px rgba(0,0,0,0.3);
 }
 
 .game-card--live::before {
@@ -22,9 +29,7 @@
   box-shadow: 0 0 12px var(--live-red);
 }
 
-.game-card--clickable {
-  cursor: pointer;
-}
+.game-card--clickable { cursor: pointer; }
 
 .game-card--clickable:hover {
   transform: translateY(-2px);
@@ -32,22 +37,20 @@
   box-shadow: var(--shadow-gold);
 }
 
-.game-card--compact {
-  padding: 12px 16px;
-}
+.game-card--compact { padding: 12px 14px; }
 
-/* ─── Header ─────────────────────────────────────────────── */
+/* ── Header ───────────────────────────────────────────── */
 .game-card__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
-  gap: 8px;
+  margin-bottom: 12px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .game-card__round {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   color: var(--white-30);
   font-family: var(--font-display);
   text-transform: uppercase;
@@ -55,56 +58,61 @@
   margin-left: auto;
 }
 
-/* ─── Teams ──────────────────────────────────────────────── */
+/* ── Teams container ──────────────────────────────────── */
 .game-card__teams {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
+/* Each team row — KEY FIX: use a CSS grid so score never gets
+   pushed off-screen regardless of team name length */
 .game-card__team {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
+  min-width: 0;
 }
 
 .game-card__team-info {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex: 1;
-  min-width: 0;
+  gap: 8px;
+  min-width: 0;          /* allow ellipsis on long names */
+  overflow: hidden;
 }
 
+/* Logo / placeholder */
 .game-card__logo {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   object-fit: contain;
   flex-shrink: 0;
 }
 
 .game-card__logo-placeholder {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--white);
   flex-shrink: 0;
 }
 
 .game-card--compact .game-card__logo,
 .game-card--compact .game-card__logo-placeholder {
-  width: 28px;
-  height: 28px;
-  font-size: 0.65rem;
+  width: 26px;
+  height: 26px;
+  font-size: 0.6rem;
 }
 
+/* Team name block */
 .game-card__team-name {
   display: flex;
   flex-direction: column;
@@ -114,47 +122,44 @@
 .game-card__abbr {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 1.05rem;
+  font-size: 1rem;
   text-transform: uppercase;
   color: var(--white-80);
   line-height: 1.1;
+  white-space: nowrap;
 }
 
 .game-card__full-name {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   color: var(--white-30);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.game-card__team--winner .game-card__abbr {
-  color: var(--white);
-}
+.game-card__team--winner .game-card__abbr { color: var(--white); }
 
-/* ─── Score ──────────────────────────────────────────────── */
+/* ── Score — always on the right, never clipped ────────── */
 .game-card__score {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   color: var(--white-60);
-  min-width: 40px;
+  /* Fixed width so both rows align */
+  min-width: 36px;
   text-align: right;
   line-height: 1;
+  flex-shrink: 0;
+  justify-self: end;
 }
 
-.game-card__score--live {
-  color: var(--white);
-}
+.game-card__score--live            { color: var(--white); }
+.game-card__team--winner .game-card__score { color: var(--gold); }
 
-.game-card__team--winner .game-card__score {
-  color: var(--gold);
-}
-
-/* ─── Footer ─────────────────────────────────────────────── */
+/* ── Footer ───────────────────────────────────────────── */
 .game-card__footer {
-  margin-top: 14px;
-  padding-top: 12px;
+  margin-top: 12px;
+  padding-top: 10px;
   border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -162,16 +167,30 @@
 }
 
 .game-card__view-link {
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   color: var(--gold);
   font-family: var(--font-display);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   opacity: 0.8;
-  transition: opacity var(--transition);
+  transition: opacity 0.18s;
 }
 
-.game-card--clickable:hover .game-card__view-link {
-  opacity: 1;
+.game-card--clickable:hover .game-card__view-link { opacity: 1; }
+
+/* ── Mobile tweaks ────────────────────────────────────── */
+@media (max-width: 480px) {
+  .game-card         { padding: 13px 12px; }
+  .game-card--compact{ padding: 10px 12px; }
+
+  .game-card__abbr   { font-size: 0.92rem; }
+  .game-card__score  { font-size: 1.35rem; min-width: 32px; }
+
+  .game-card__logo,
+  .game-card__logo-placeholder {
+    width: 28px;
+    height: 28px;
+    font-size: 0.62rem;
+  }
 }
