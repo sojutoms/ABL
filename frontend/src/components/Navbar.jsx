@@ -75,11 +75,11 @@ const Navbar = () => {
           </ul>
 
           <div className="navbar__social">
-            <a href="https://facebook.com/YOUR_PAGE" target="_blank" rel="noopener noreferrer"
+            <a href="https://www.facebook.com/profile.php?id=61587632257743" target="_blank" rel="noopener noreferrer"
                className="navbar__social-link" aria-label="Facebook">
               <FacebookIcon />
             </a>
-            <a href="https://instagram.com/YOUR_HANDLE" target="_blank" rel="noopener noreferrer"
+            <a href="https://www.instagram.com/ablhoops_south?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank" rel="noopener noreferrer"
                className="navbar__social-link" aria-label="Instagram">
               <InstagramIcon />
             </a>
