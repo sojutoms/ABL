@@ -33,10 +33,12 @@ const GameModal = ({ teams, onClose, onSaved, existing }) => {
     } finally { setSaving(false) }
   }
 
-  // Format date for datetime-local input
+  // Format date for datetime-local input using local time (no UTC conversion)
   const toInputDate = (d) => {
     if (!d) return ''
-    return new Date(d).toISOString().slice(0, 16)
+    const date = new Date(d)
+    const pad = (n) => n.toString().padStart(2, '0')
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
   }
 
   return (
@@ -65,7 +67,22 @@ const GameModal = ({ teams, onClose, onSaved, existing }) => {
           </div>
           <div className="form-group">
             <label className="form-label">Date & Time *</label>
-            <input type="datetime-local" className="form-input" value={toInputDate(form.scheduledDate)} onChange={e => set('scheduledDate', e.target.value)} />
+            <input
+              type="datetime-local"
+              className="form-input"
+              value={toInputDate(form.scheduledDate)}
+              onChange={e => {
+                // e.target.value is a local datetime string (YYYY-MM-DDTHH:mm)
+                // Convert to a Date (interpreted as local) and store as ISO (UTC) in the DB
+                const localValue = e.target.value
+                if (!localValue) {
+                  set('scheduledDate', '')
+                } else {
+                  const iso = new Date(localValue).toISOString()
+                  set('scheduledDate', iso)
+                }
+              }}
+            />
           </div>
           <div className="grid-2">
             <div className="form-group">
@@ -180,7 +197,12 @@ export default function Games() {
                             {STATUSES.map(s => <option key={s} value={s} style={{ color:'var(--white)' }}>{s}</option>)}
                           </select>
                         </td>
-                        <td className="small">{new Date(game.scheduledDate).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'})}</td>
+                        <td className="small">
+                          {game.scheduledDate
+                            ? new Date(game.scheduledDate).toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' })
+                            : '—'
+                          }
+                        </td>
                         <td>
                           <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:'0.95rem' }}>
                             {game.awayTeam?.abbreviation || '?'} <span className="muted">@</span> {game.homeTeam?.abbreviation || '?'}
