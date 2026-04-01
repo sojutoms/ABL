@@ -1,8 +1,12 @@
+/* ─────────────────────────────────────────────────────────
+   GameDetail.css — mobile-first
+   ───────────────────────────────────────────────────────── */
+
 .game-detail-back {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 28px 0 20px;
+  padding: 24px 0 16px;
 }
 
 .back-link {
@@ -13,23 +17,22 @@
   letter-spacing: 0.08em;
   color: var(--white-60);
   transition: color var(--transition);
+  text-decoration: none;
 }
 .back-link:hover { color: var(--gold); }
 
-/* ─── Scoreboard ─────────────────────────────────────────── */
+/* ─── Scoreboard card ───────────────────────────────────── */
 .scoreboard {
   background: var(--black-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
-  padding: 28px 32px;
-  margin-bottom: 32px;
+  padding: 24px 20px;
+  margin-bottom: 28px;
   position: relative;
   overflow: hidden;
 }
 
-.scoreboard--live {
-  border-color: rgba(230, 57, 70, 0.25);
-}
+.scoreboard--live   { border-color: rgba(230,57,70,0.25); }
 
 .scoreboard__live-bar {
   position: absolute;
@@ -42,129 +45,145 @@
 .scoreboard__status {
   display: flex;
   justify-content: center;
-  margin-bottom: 28px;
+  margin-bottom: 20px;
 }
 
-/* ─── Matchup ────────────────────────────────────────────── */
+/* ─── Matchup — CSS Grid (KEY FIX for mobile) ─────────────
+   Using a 5-column grid guarantees every element gets its
+   allocated space. No flexbox shrinking that hides the score.
+
+   Columns:
+     [away-info]  [away-score]  [VS]  [home-score]  [home-info]
+       1fr          auto         auto    auto           1fr
+*/
 .scoreboard__matchup {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto auto auto 1fr;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  gap: 6px;
 }
 
+/* Away team: logo + name stack */
 .scoreboard__team {
   display: flex;
   align-items: center;
-  gap: 16px;
-  flex: 1;
+  gap: 8px;
+  min-width: 0;           /* allow text to truncate */
 }
 
+/* Home team: reverse order (name → score on right) */
 .scoreboard__team--home {
   flex-direction: row-reverse;
 }
 
+/* Score — fixed, never shrinks, always visible */
+.scoreboard__score {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 2.8rem;
+  color: rgba(255,255,255,0.35);
+  line-height: 1;
+  flex-shrink: 0;
+  min-width: 60px;
+  text-align: center;
+}
+.scoreboard__score--live                   { color: var(--white); }
+.scoreboard__team--winner .scoreboard__score { color: var(--gold); }
+
+/* VS divider */
+.scoreboard__vs {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 0.85rem;
+  color: var(--white-20);
+  letter-spacing: 0.1em;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+/* Logo */
 .scoreboard__logo {
-  width: 72px;
-  height: 72px;
+  width: 48px;
+  height: 48px;
   object-fit: contain;
   flex-shrink: 0;
 }
 
 .scoreboard__logo-placeholder {
-  width: 72px;
-  height: 72px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 1.1rem;
+  font-size: 0.85rem;
   color: var(--white);
   flex-shrink: 0;
 }
 
+/* Team name — shrinks to fit, truncates cleanly */
 .scoreboard__team-name {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  flex: 1;
 }
-
-.scoreboard__team-name--right {
-  text-align: right;
-}
+.scoreboard__team-name--right { text-align: right; }
 
 .scoreboard__city {
-  font-size: 0.72rem;
+  font-size: 0.62rem;
   color: var(--white-30);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-family: var(--font-display);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .scoreboard__name {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 1.4rem;
+  font-size: 1.15rem;
   text-transform: uppercase;
   color: var(--white-80);
   line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.scoreboard__team--winner .scoreboard__name { color: var(--white); }
+
+.scoreboard__record {
+  font-size: 0.65rem;
+  color: var(--white-30);
 }
 
-.scoreboard__team--winner .scoreboard__name {
-  color: var(--white);
-}
-
-.scoreboard__score {
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: 3.5rem;
-  color: var(--white-40);
-  line-height: 1;
-  min-width: 80px;
-  text-align: center;
-}
-
-.scoreboard__score--live {
-  color: var(--white);
-}
-
-.scoreboard__team--winner .scoreboard__score {
-  color: var(--gold);
-}
-
-.scoreboard__vs {
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: 1rem;
-  color: var(--white-20);
-  letter-spacing: 0.1em;
-  flex-shrink: 0;
-}
-
-/* ─── Details row ────────────────────────────────────────── */
+/* ─── Details (fouls + quarter scores) ─────────────────── */
 .scoreboard__details {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 24px;
-  margin-top: 24px;
-  padding-top: 20px;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 16px;
   border-top: 1px solid var(--border);
   flex-wrap: wrap;
 }
 
-/* ─── Team Fouls ─────────────────────────────────────────── */
 .team-fouls {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .team-fouls__label {
   font-family: var(--font-display);
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--white-30);
@@ -173,28 +192,31 @@
 .team-fouls__counts {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   color: var(--white-80);
 }
 
-/* ─── Quarter scores ─────────────────────────────────────── */
+/* Quarter score table */
 .quarter-scores {
   flex: 1;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  min-width: 0;
 }
 
 .quarter-table {
   border-collapse: collapse;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   width: 100%;
+  min-width: 240px;
 }
 
 .quarter-table th,
 .quarter-table td {
-  padding: 6px 14px;
+  padding: 5px 10px;
   text-align: center;
   color: var(--white-60);
   border-bottom: 1px solid var(--border);
@@ -202,21 +224,20 @@
 
 .quarter-table th {
   font-family: var(--font-display);
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--white-30);
 }
 
-.quarter-table th.active-q {
-  color: var(--gold);
-}
+.quarter-table th.active-q { color: var(--gold); }
 
 .quarter-table td.team-label {
   text-align: left;
   font-family: var(--font-display);
   font-weight: 700;
   color: var(--white-80);
+  white-space: nowrap;
 }
 
 .quarter-table td.total-col,
@@ -227,14 +248,9 @@
   border-left: 1px solid var(--border);
 }
 
-/* ─── Box score section ──────────────────────────────────── */
-.game-detail-boxscore {
-  margin-bottom: 60px;
-}
-
-.game-detail-skeleton {
-  padding-top: 40px;
-}
+/* ─── Box score ─────────────────────────────────────────── */
+.game-detail-boxscore { margin-bottom: 60px; }
+.game-detail-skeleton  { padding-top: 40px; }
 
 .game-detail-upcoming {
   background: var(--black-3);
@@ -246,12 +262,59 @@
   margin-bottom: 60px;
 }
 
-/* ─── Responsive ─────────────────────────────────────────── */
-@media (max-width: 640px) {
-  .scoreboard { padding: 20px 16px; }
+/* ─── TABLET (≤ 768px) ──────────────────────────────────── */
+@media (max-width: 768px) {
+  .scoreboard           { padding: 20px 14px; }
+  .scoreboard__score    { font-size: 2.4rem; min-width: 52px; }
   .scoreboard__logo,
-  .scoreboard__logo-placeholder { width: 48px; height: 48px; font-size: 0.85rem; }
-  .scoreboard__score { font-size: 2.5rem; }
-  .scoreboard__name { font-size: 1.1rem; }
-  .scoreboard__matchup { gap: 8px; }
+  .scoreboard__logo-placeholder { width: 40px; height: 40px; font-size: 0.76rem; }
+  .scoreboard__name     { font-size: 1rem; }
+  .scoreboard__matchup  { gap: 5px; }
+}
+
+/* ─── MOBILE (≤ 480px) ──────────────────────────────────── */
+@media (max-width: 480px) {
+  .scoreboard {
+    padding: 14px 10px;
+    border-radius: var(--radius-lg);
+  }
+
+  /* Hide city and "Home/Away" record label to save space */
+  .scoreboard__city   { display: none; }
+  .scoreboard__record { display: none; }
+
+  /* Team name shorter */
+  .scoreboard__name   { font-size: 0.88rem; }
+
+  /* Score: always visible, just slightly smaller */
+  .scoreboard__score  { font-size: 2.1rem; min-width: 44px; }
+
+  /* Smaller logos */
+  .scoreboard__logo,
+  .scoreboard__logo-placeholder {
+    width: 30px;
+    height: 30px;
+    font-size: 0.62rem;
+  }
+
+  .scoreboard__vs     { font-size: 0.65rem; }
+  .scoreboard__matchup { gap: 3px; }
+
+  /* Stack fouls and quarters vertically */
+  .scoreboard__details {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .quarter-scores { width: 100%; }
+
+  .quarter-table th,
+  .quarter-table td { padding: 4px 5px; font-size: 0.7rem; }
+}
+
+/* ─── Very small (≤ 360px) ──────────────────────────────── */
+@media (max-width: 360px) {
+  .scoreboard__score { font-size: 1.85rem; min-width: 38px; }
+  .scoreboard__name  { font-size: 0.78rem; }
+  .scoreboard__logo,
+  .scoreboard__logo-placeholder { width: 26px; height: 26px; font-size: 0.55rem; }
 }
