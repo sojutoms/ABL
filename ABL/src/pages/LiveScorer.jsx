@@ -46,6 +46,20 @@ const mkBlank = (player, teamId, onCourt = false) => ({
   minutesPlayed: 0, _secondsPlayed: 0, _playerInfo: player,
 })
 
+// ─────────────────────────────────────────────────────────
+// +/- DESIGN
+// ─────────────────────────────────────────────────────────
+// pmEntry is stored as a REF (per component instance, not a
+// module-level singleton).  This means:
+//   • Each scorer tab has its own independent entry table
+//   • It survives re-renders without getting reset
+//   • It's initialised fresh on every load() call
+//
+// Formula: +/- = (myTeamPts - entryMyTeam) - (oppPts - entryOpp)
+// It is computed INLINE inside the state setter so no async
+// gap exists between "score changes" and "+/- updates".
+// ─────────────────────────────────────────────────────────
+
 // Recalculate +/- for every on-court player in a map
 // given current total scores.  Returns same ref if nothing changed.
 const recalcPM = (map, side, hPts, aPts, pmEntryMap) => {
@@ -200,16 +214,20 @@ export default function LiveScorer() {
   const curQRef       = useRef(1)
   const tfRef         = useRef({ home:{1:0,2:0,3:0,4:0,5:0}, away:{1:0,2:0,3:0,4:0,5:0} })
 
+  // ── PER-INSTANCE pmEntry map (NOT a module-level singleton) ──
+  // This stores { pid → { homeScore, awayScore } } at the moment
+  // each player stepped on court.  Stored as a ref so it persists
+  // across renders without causing re-renders.
   const pmEntryRef = useRef(new Map())
 
-  // Socket setup
+  // ── Socket setup ──────────────────────────────────────
   useEffect(() => {
     const URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000'
     const socket = io(URL, { transports: ['websocket'] })
     socketRef.current = socket
     socket.emit('joinGame', gameId)
 
-    // Another scorer updated game state (clock/score/fouls)
+    // ── Another scorer updated game state (clock/score/fouls) ──
     socket.on('gameUpdate', ({ game: g }) => {
       if (!g) return
       setGame(g)
@@ -245,7 +263,10 @@ export default function LiveScorer() {
       })
     })
 
-
+    // ── Another scorer updated a player's stats (box score) ──
+    // Key: we merge their STAT VALUES but keep our local computed
+    // values for: onCourt, _secondsPlayed, and plusMinus
+    // (we recompute plusMinus ourselves from pmEntry — don't trust DB value)
     socket.on('boxScoreUpdate', ({ stats: list }) => {
       if (!Array.isArray(list)) return
 
@@ -469,6 +490,20 @@ export default function LiveScorer() {
     return () => clearInterval(t)
   }, [running, save])
 
+  // ─────────────────────────────────────────────────────
+  // CORE STAT UPDATER
+  //
+  // All computation happens INSIDE the setState updater
+  // (synchronous, no async gap):
+  //   1. Apply the stat change to the player
+  //   2. Compute new team points from the updated map
+  //   3. Compute new QS (current quarter = totalPts - otherQuarters)
+  //   4. Update QS refs immediately
+  //   5. Recompute +/- for ALL on-court players on BOTH sides
+  //      using the fresh QS values and our per-instance pmEntryRef
+  //   6. Return the patched map to React
+  //   7. Separately call setHomeQS/setAwayQS for scoreboard render
+  // ─────────────────────────────────────────────────────
 
   const applyStatChange = useCallback((side, pid, buildNext) => {
     const isHome   = side === 'home'
@@ -503,11 +538,14 @@ export default function LiveScorer() {
           .reduce((a, [, v]) => a + v, 0)
         const newQS   = { ...prevQS, [qKey]: Math.max(0, myPts - others) }
 
+        // ── 3. Update QS refs NOW (synchronous) ─────────
         myQSRef.current = newQS
 
+        // ── 4. Fresh totals for +/- computation ─────────
         const hPts = isHome ? sumQS(newQS)         : sumQS(homeQSRef.current)
         const aPts = isHome ? sumQS(awayQSRef.current) : sumQS(newQS)
 
+        // ── 5. Patch +/- in both maps ────────────────────
         const myPatched    = recalcPM(newMap,            side,                   hPts, aPts, pmEntryRef.current)
         const otherPatched = recalcPM(otherRef.current,  isHome ? 'away':'home', hPts, aPts, pmEntryRef.current)
 
@@ -519,6 +557,9 @@ export default function LiveScorer() {
           else        setHomeStats(otherPatched)
         }
 
+        // ── 6. Store new QS for render (outside setter) ─
+        // We can't call setHomeQS inside a setState updater without
+        // scheduling, so we capture the value and call it after.
         newHomeQS = isHome ? newQS : homeQSRef.current
         newAwayQS = isHome ? awayQSRef.current : newQS
 
@@ -529,6 +570,8 @@ export default function LiveScorer() {
       return newMap
     })
 
+    // Update QS state for scoreboard render
+    // (called synchronously after setter — React batches these)
     if (newHomeQS) setHomeQS(newHomeQS)
     if (newAwayQS) setAwayQS(newAwayQS)
 
