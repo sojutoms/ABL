@@ -9,26 +9,32 @@ import { useToast } from '../context/ToastContext.jsx'
 import './LiveScorer.css'
 
 // ─── Constants ────────────────────────────────────────────
-const QUARTER_DURATION = 600   // 10 min
-const SAVE_DEBOUNCE    = 350   // ms before API push
-const CLOCK_BROADCAST  = 1000  // emit clockUpdate every 1s while running
-const STORAGE_KEY = (gid) => `abl_oncourt_${gid}`
+const QUARTER_DURATION = 600
+const SAVE_DEBOUNCE    = 350
+const STORAGE_KEY      = (gid) => `abl_oncourt_${gid}`
 
-// ─── Pure helpers ──────────────────────────────────────────
-const fmtClock  = (s) =>
+// ─── Pure helpers ─────────────────────────────────────────
+const fmtClock = (s) =>
   `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
+
 const parseClock = (str) => {
   const [m, s] = (str || '10:00').split(':').map(Number)
   return ((m || 0) * 60) + (s || 0)
 }
-const QKEY     = (q) => (q <= 4 ? `q${q}` : 'ot')
-const sumQS    = (qs) => Object.values(qs || {}).reduce((a, b) => a + b, 0)
-const sumMapPts = (map) => Object.values(map).reduce((a, s) => a + (s.points || 0), 0)
-const calcPts  = (s) =>
+
+const QKEY   = (q) => (q <= 4 ? `q${q}` : 'ot')
+const sumQS  = (qs) => Object.values(qs || {}).reduce((a, b) => a + b, 0)
+const calcPts = (s) =>
   Math.max(0, (s.fgMade||0) - (s.threePtMade||0)) * 2 +
   (s.threePtMade||0) * 3 +
   (s.ftMade||0)
+
+const sumMapPts = (map) =>
+  Object.values(map).reduce((a, s) => a + (s.points || 0), 0)
+
+// Strip internal fields before API save
 const toApi = ({ _playerInfo, onCourt, _secondsPlayed, _id, __v, createdAt, updatedAt, ...r }) => r
+
 const mkBlank = (player, teamId, onCourt = false) => ({
   player: player._id, team: teamId,
   isStarter: onCourt, didNotPlay: false, onCourt,
@@ -40,7 +46,8 @@ const mkBlank = (player, teamId, onCourt = false) => ({
   minutesPlayed: 0, _secondsPlayed: 0, _playerInfo: player,
 })
 
-// ─── +/- helpers ──────────────────────────────────────────
+// Recalculate +/- for every on-court player in a map
+// given current total scores.  Returns same ref if nothing changed.
 const recalcPM = (map, side, hPts, aPts, pmEntryMap) => {
   let changed = false
   const next = { ...map }
@@ -59,28 +66,28 @@ const recalcPM = (map, side, hPts, aPts, pmEntryMap) => {
   return changed ? next : map
 }
 
-// ─── Stat columns ──────────────────────────────────────────
+// ─── Stat column definitions ──────────────────────────────
 const COLS = [
-  { key:'points',          label:'PTS', ro:true          },
-  { key:'fgMade',          label:'FGM', makes:true       },
-  { key:'fgAttempts',      label:'FGA'                   },
-  { key:'threePtMade',     label:'3PM', makes:true       },
-  { key:'threePtAttempts', label:'3PA'                   },
-  { key:'ftMade',          label:'FTM', makes:true       },
-  { key:'ftAttempts',      label:'FTA'                   },
-  { key:'offRebounds',     label:'OR'                    },
-  { key:'defRebounds',     label:'DR'                    },
-  { key:'totalRebounds',   label:'REB', ro:true          },
-  { key:'assists',         label:'AST'                   },
-  { key:'steals',          label:'STL'                   },
-  { key:'blocks',          label:'BLK'                   },
-  { key:'turnovers',       label:'TO'                    },
-  { key:'personalFouls',   label:'PF',  pf:true          },
-  { key:'plusMinus',       label:'+/−', ro:true, pm:true },
-  { key:'minutesPlayed',   label:'MIN', ro:true          },
+  { key:'points',          label:'PTS', ro:true              },
+  { key:'fgMade',          label:'FGM', makes:true           },
+  { key:'fgAttempts',      label:'FGA'                       },
+  { key:'threePtMade',     label:'3PM', makes:true           },
+  { key:'threePtAttempts', label:'3PA'                       },
+  { key:'ftMade',          label:'FTM', makes:true           },
+  { key:'ftAttempts',      label:'FTA'                       },
+  { key:'offRebounds',     label:'OR'                        },
+  { key:'defRebounds',     label:'DR'                        },
+  { key:'totalRebounds',   label:'REB', ro:true              },
+  { key:'assists',         label:'AST'                       },
+  { key:'steals',          label:'STL'                       },
+  { key:'blocks',          label:'BLK'                       },
+  { key:'turnovers',       label:'TO'                        },
+  { key:'personalFouls',   label:'PF',  pf:true              },
+  { key:'plusMinus',       label:'+/−', ro:true, pm:true     },
+  { key:'minutesPlayed',   label:'MIN', ro:true              },
 ]
 
-// ─── Confirm modal ─────────────────────────────────────────
+// ─── Confirm modal ────────────────────────────────────────
 const ConfirmModal = ({ title, message, onConfirm, onCancel }) => (
   <div className="confirm-overlay">
     <div className="confirm-box">
@@ -95,7 +102,7 @@ const ConfirmModal = ({ title, message, onConfirm, onCancel }) => (
   </div>
 )
 
-// ─── Stat cell ─────────────────────────────────────────────
+// ─── Stat cell (pure) ─────────────────────────────────────
 function StatCell({ col, s, sp, isOn, side, pid, onInc, onDec }) {
   if (col.key === 'points')        return <td><span className="cell-pts">{s.points||0}</span></td>
   if (col.key === 'totalRebounds') return <td><span className="cell-reb">{s.totalRebounds||0}</span></td>
@@ -106,15 +113,17 @@ function StatCell({ col, s, sp, isOn, side, pid, onInc, onDec }) {
   )
   if (col.key === 'plusMinus') {
     const val = s.plusMinus || 0
-    const cls = val>0?'cell-pm cell-pm--pos':val<0?'cell-pm cell-pm--neg':'cell-pm cell-pm--zero'
-    return <td><span className={cls}>{val>0?`+${val}`:val}</span></td>
+    const cls = val > 0 ? 'cell-pm cell-pm--pos' : val < 0 ? 'cell-pm cell-pm--neg' : 'cell-pm cell-pm--zero'
+    return <td><span className={cls}>{val > 0 ? `+${val}` : val}</span></td>
   }
+
   const val  = s[col.key] ?? 0
   let vCls   = 'stat-cell__val'
   if (col.pf && val >= 5) vCls += ' stat-cell__val--red'
-  let iCls   = 'stat-cell__inc'
+  let iCls = 'stat-cell__inc'
   if (col.pf)    iCls += ' stat-cell__inc--pf'
   else if (col.makes) iCls += ' stat-cell__inc--makes'
+
   return (
     <td>
       <div className="stat-cell">
@@ -126,14 +135,14 @@ function StatCell({ col, s, sp, isOn, side, pid, onInc, onDec }) {
   )
 }
 
-// ─── Player row ────────────────────────────────────────────
+// ─── Player row ───────────────────────────────────────────
 function PlayerRow({ player, s, isOn, side, onInc, onDec }) {
   const sp = s._secondsPlayed || 0
   return (
     <tr className={isOn ? 'row--on-court' : 'row--bench'}>
       <td>
         <div className="player-cell">
-          <div className="player-num-circle" style={{ width:30,height:30,fontSize:'0.85rem' }}>
+          <div className="player-num-circle" style={{ width:30, height:30, fontSize:'0.85rem' }}>
             {player.jerseyNumber}
           </div>
           <div className="player-cell__info">
@@ -152,7 +161,7 @@ function PlayerRow({ player, s, isOn, side, onInc, onDec }) {
   )
 }
 
-// ─── Main component ────────────────────────────────────────
+// ─── Main component ───────────────────────────────────────
 export default function LiveScorer() {
   const { gameId }   = useParams()
   const { addToast } = useToast()
@@ -173,17 +182,16 @@ export default function LiveScorer() {
   const [homeQS,    setHomeQS]    = useState({ q1:0,q2:0,q3:0,q4:0,ot:0 })
   const [awayQS,    setAwayQS]    = useState({ q1:0,q2:0,q3:0,q4:0,ot:0 })
   const [teamFouls, setTeamFouls] = useState({
-    home:{1:0,2:0,3:0,4:0,5:0}, away:{1:0,2:0,3:0,4:0,5:0},
+    home:{1:0,2:0,3:0,4:0,5:0}, away:{1:0,2:0,3:0,4:0,5:0}
   })
   const [dragPid,  setDragPid]  = useState(null)
   const [dragSide, setDragSide] = useState(null)
   const [dragOver, setDragOver] = useState(null)
 
-  // ── Refs ───────────────────────────────────────────────
+  // ── Mutable refs (always synchronous) ─────────────────
   const socketRef     = useRef(null)
   const saveTimer     = useRef(null)
-  const clockInterval = useRef(null)       // local tick interval
-  const clockBcTimer  = useRef(null)       // clock broadcast interval
+  const clockInterval = useRef(null)
   const homeStatsRef  = useRef({})
   const awayStatsRef  = useRef({})
   const homeQSRef     = useRef({ q1:0,q2:0,q3:0,q4:0,ot:0 })
@@ -191,17 +199,17 @@ export default function LiveScorer() {
   const clockSecRef   = useRef(QUARTER_DURATION)
   const curQRef       = useRef(1)
   const tfRef         = useRef({ home:{1:0,2:0,3:0,4:0,5:0}, away:{1:0,2:0,3:0,4:0,5:0} })
-  const runningRef    = useRef(false)      // sync ref for broadcast
-  const pmEntryRef    = useRef(new Map())  // per-instance, never a singleton
 
-  // ── Socket setup ───────────────────────────────────────
+  const pmEntryRef = useRef(new Map())
+
+  // Socket setup
   useEffect(() => {
     const URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000'
     const socket = io(URL, { transports: ['websocket'] })
     socketRef.current = socket
     socket.emit('joinGame', gameId)
 
-    // ─── Incoming: another scorer changed game/score/fouls ───
+    // Another scorer updated game state (clock/score/fouls)
     socket.on('gameUpdate', ({ game: g }) => {
       if (!g) return
       setGame(g)
@@ -219,99 +227,127 @@ export default function LiveScorer() {
             home: { ...prev.home, [q]: g.homeTeamFouls ?? prev.home[q] },
             away: { ...prev.away, [q]: g.awayTeamFouls ?? prev.away[q] },
           }
-          tfRef.current = next; return next
+          tfRef.current = next
+          return next
         })
       }
-      const hPts = sumQS(hq); const aPts = sumQS(aq)
-      setHomeStats(prev => { const n=recalcPM(prev,'home',hPts,aPts,pmEntryRef.current); homeStatsRef.current=n; return n })
-      setAwayStats(prev => { const n=recalcPM(prev,'away',hPts,aPts,pmEntryRef.current); awayStatsRef.current=n; return n })
+
+      // After QS update from another scorer, recompute our +/- too
+      const hPts = sumQS(hq)
+      const aPts = sumQS(aq)
+      setHomeStats(prev => {
+        const n = recalcPM(prev, 'home', hPts, aPts, pmEntryRef.current)
+        homeStatsRef.current = n; return n
+      })
+      setAwayStats(prev => {
+        const n = recalcPM(prev, 'away', hPts, aPts, pmEntryRef.current)
+        awayStatsRef.current = n; return n
+      })
     })
 
-    // ─── Incoming: another scorer updated box score stats ───
+
     socket.on('boxScoreUpdate', ({ stats: list }) => {
       if (!Array.isArray(list)) return
+
       list.forEach(updated => {
-        const pid    = updated.player?._id || updated.player
-        const tid    = updated.team?._id   || updated.team
+        const pid = updated.player?._id || updated.player
+        const tid = updated.team?._id   || updated.team
+
+        // Find which map this player belongs to
         const inHome = homeStatsRef.current[pid] !== undefined ||
           Object.values(homeStatsRef.current).some(s => String(s.team) === String(tid))
-        const setter   = inHome ? setHomeStats : setAwayStats
-        const statsRef = inHome ? homeStatsRef  : awayStatsRef
-        const side     = inHome ? 'home'         : 'away'
+
+        const setter    = inHome ? setHomeStats : setAwayStats
+        const statsRef  = inHome ? homeStatsRef  : awayStatsRef
+        const side      = inHome ? 'home'         : 'away'
 
         setter(prev => {
           const existing = prev[pid]
-          if (!existing) return prev
-          const e = pmEntryRef.current.get(pid)
-          const pm = (e && existing.onCourt)
-            ? (side === 'home'
-                ? (sumQS(homeQSRef.current) - e.homeScore) - (sumQS(awayQSRef.current) - e.awayScore)
-                : (sumQS(awayQSRef.current) - e.awayScore) - (sumQS(homeQSRef.current) - e.homeScore))
-            : existing.plusMinus
+          if (!existing) return prev   // not on our roster
+
+          // Merge: take their stats, keep our local tracking fields
           const merged = {
             ...updated,
-            onCourt: existing.onCourt,
+            onCourt:        existing.onCourt,
             _secondsPlayed: existing._secondsPlayed,
-            _playerInfo: existing._playerInfo,
-            plusMinus: pm,
+            _playerInfo:    existing._playerInfo,
+            // Recompute +/- from our own pmEntry (not from DB)
+            plusMinus: (() => {
+              const e = pmEntryRef.current.get(pid)
+              if (!e || !existing.onCourt) return existing.plusMinus
+              const hPts = sumQS(homeQSRef.current)
+              const aPts = sumQS(awayQSRef.current)
+              return side === 'home'
+                ? (hPts - e.homeScore) - (aPts - e.awayScore)
+                : (aPts - e.awayScore) - (hPts - e.homeScore)
+            })(),
           }
+
           const newMap = { ...prev, [pid]: merged }
-          statsRef.current = newMap; return newMap
+          statsRef.current = newMap
+          return newMap
         })
       })
     })
 
-    // ─── Incoming: clock sync from the controlling scorer ───
-    // ONE scorer drives the clock. Everyone else just follows.
-    socket.on('clockUpdate', ({ running: r, clockSecs: cs, currentQuarter: q }) => {
-      // Sync clock value
-      if (typeof cs === 'number') {
-        setClockSecs(cs); clockSecRef.current = cs
-      }
-      // Sync quarter
-      if (q && q !== curQRef.current) {
-        setCurQ(q); curQRef.current = q
-      }
-      // Sync running state — but DON'T start our own interval
-      // (only the controlling scorer runs the interval; we just display)
-      setRunning(r)
-      runningRef.current = r
-    })
-
+    // ── Viewer-side scoreboard push (sync QS only) ──
     socket.on('scoreboardUpdate', ({ game: g }) => {
       if (!g || g.status === 'final') return
-      if (g.homeQuarterScores) { homeQSRef.current = g.homeQuarterScores; setHomeQS(g.homeQuarterScores) }
-      if (g.awayQuarterScores) { awayQSRef.current = g.awayQuarterScores; setAwayQS(g.awayQuarterScores) }
+      if (g.homeQuarterScores) {
+        homeQSRef.current = g.homeQuarterScores
+        setHomeQS(g.homeQuarterScores)
+      }
+      if (g.awayQuarterScores) {
+        awayQSRef.current = g.awayQuarterScores
+        setAwayQS(g.awayQuarterScores)
+      }
     })
 
     return () => { socket.emit('leaveGame', gameId); socket.disconnect() }
   }, [gameId])
 
-  // ── Save + broadcast ───────────────────────────────────
+  // ── Debounced save + broadcast ─────────────────────────
   const save = useCallback(() => {
     clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(async () => {
       try {
-        const hq = homeQSRef.current; const aq = awayQSRef.current
-        const q  = curQRef.current;   const tf = tfRef.current
+        const hq = homeQSRef.current
+        const aq = awayQSRef.current
+        const q  = curQRef.current
+        const tf = tfRef.current
+
         const gRes = await updateGame(gameId, {
-          gameClock: fmtClock(clockSecRef.current), currentQuarter: q,
-          homeScore: sumQS(hq), awayScore: sumQS(aq),
-          homeQuarterScores: hq, awayQuarterScores: aq,
-          homeTeamFouls: tf.home[q]||0, awayTeamFouls: tf.away[q]||0,
+          gameClock:         fmtClock(clockSecRef.current),
+          currentQuarter:    q,
+          homeScore:         sumQS(hq),
+          awayScore:         sumQS(aq),
+          homeQuarterScores: hq,
+          awayQuarterScores: aq,
+          homeTeamFouls:     tf.home[q] || 0,
+          awayTeamFouls:     tf.away[q] || 0,
         })
         setGame(gRes.data.data)
-        socketRef.current?.emit('gameUpdate',       { game: gRes.data.data })
+
+        // Broadcast game state to other scorers and viewers
+        socketRef.current?.emit('gameUpdate',      { game: gRes.data.data })
         socketRef.current?.emit('scoreboardUpdate', { game: gRes.data.data })
+
+        // Save all stats
         const allStats = [
           ...Object.values(homeStatsRef.current),
           ...Object.values(awayStatsRef.current),
         ].filter(s => !s.didNotPlay).map(toApi)
+
         const sRes = await bulkUpsertStats(gameId, allStats)
+
+        // Broadcast stats to other scorers
         if (sRes?.data?.data) {
-          socketRef.current?.emit('boxScoreUpdate', { gameId, stats: sRes.data.data })
+          socketRef.current?.emit('boxScoreUpdate', {
+            gameId,
+            stats: sRes.data.data,
+          })
         }
-      } catch { /* silent */ }
+      } catch { /* silent — will retry on next change */ }
     }, SAVE_DEBOUNCE)
   }, [gameId])
 
@@ -344,32 +380,23 @@ export default function LiveScorer() {
       setAwayPlayers(aRes.data.data)
 
       const existing = sRes.data.data
-
-      // ── On-court restoration: localStorage ALWAYS wins ────
-      // Load from localStorage first. Only fall back to isStarter
-      // if no localStorage entry exists at all for this game.
       let saved = {}
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY(gameId))
-        if (raw) saved = JSON.parse(raw)
-      } catch {}
-      const hasLocalSave = Object.keys(saved).length > 0
+      try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY(gameId)) || '{}') } catch {}
 
+      // Reset pmEntry for this fresh load
       pmEntryRef.current = new Map()
 
       const buildMap = (players, teamId) => {
         const map = {}
         players.forEach(p => {
-          const found = existing.find(s => (s.player?._id || s.player) === p._id)
-          // Priority: 1) localStorage  2) isStarter from DB  3) false
-          const onCourt = hasLocalSave
-            ? (saved[p._id] ?? false)
-            : (found?.isStarter || false)
-
+          const found   = existing.find(s => (s.player?._id || s.player) === p._id)
+          const onCourt = saved[p._id] !== undefined ? saved[p._id] : (found?.isStarter || false)
           map[p._id] = found
             ? { ...found, onCourt, _playerInfo: p, _secondsPlayed: (found.minutesPlayed||0)*60 }
             : mkBlank(p, teamId, onCourt)
 
+          // Seed pmEntry for players already on court at load time
+          // We use current scores as their baseline (can't know the real entry point)
           if (onCourt) {
             pmEntryRef.current.set(p._id, { homeScore: sumQS(hq), awayScore: sumQS(aq) })
           }
@@ -381,14 +408,13 @@ export default function LiveScorer() {
       const aMap = buildMap(aRes.data.data, awayId)
       homeStatsRef.current = hMap; awayStatsRef.current = aMap
       setHomeStats(hMap); setAwayStats(aMap)
-
     } catch { addToast('Failed to load game', 'error') }
     finally  { setLoading(false) }
   }, [gameId])
 
   useEffect(() => { load() }, [load])
 
-  // ── Persist on-court to localStorage ──────────────────
+  // ── Persist on-court ──────────────────────────────────
   const persistCourt = useCallback((hMap, aMap) => {
     const m = {}
     ;[...Object.values(hMap), ...Object.values(aMap)].forEach(s => { m[s.player] = !!s.onCourt })
@@ -406,26 +432,16 @@ export default function LiveScorer() {
     return () => window.removeEventListener('keydown', fn)
   }, [])
 
-  // ── Clock tick (LOCAL — only this scorer drives the tick) ─
-  // Other scorers receive clockUpdate events and just display the value.
-  // This means only ONE scorer needs to have the clock running locally.
-  // When running=true, this scorer broadcasts every second.
+  // ── Clock tick ────────────────────────────────────────
   useEffect(() => {
-    runningRef.current = running
-
     if (running) {
-      // Local tick
       clockInterval.current = setInterval(() => {
         setClockSecs(s => {
           const next = s <= 1 ? 0 : s - 1
           clockSecRef.current = next
-          if (next === 0) {
-            setRunning(false)
-            addToast(`Q${curQRef.current} ended!`, 'info')
-          }
+          if (next === 0) { setRunning(false); addToast(`Q${curQRef.current} ended!`, 'info') }
           return next
         })
-        // Accrue playing time for on-court players
         const tick = (prev) => {
           let changed = false
           const next = { ...prev }
@@ -441,50 +457,26 @@ export default function LiveScorer() {
         setHomeStats(tick)
         setAwayStats(tick)
       }, 1000)
-
-      // Broadcast clock state every second to all other scorers
-      clockBcTimer.current = setInterval(() => {
-        socketRef.current?.emit('clockUpdate', {
-          gameId,
-          running: true,
-          clockSecs: clockSecRef.current,
-          currentQuarter: curQRef.current,
-        })
-      }, CLOCK_BROADCAST)
-
     } else {
       clearInterval(clockInterval.current)
-      clearInterval(clockBcTimer.current)
-
-      // Broadcast the paused state immediately so others stop too
-      socketRef.current?.emit('clockUpdate', {
-        gameId,
-        running: false,
-        clockSecs: clockSecRef.current,
-        currentQuarter: curQRef.current,
-      })
     }
+    return () => clearInterval(clockInterval.current)
+  }, [running])
 
-    return () => {
-      clearInterval(clockInterval.current)
-      clearInterval(clockBcTimer.current)
-    }
-  }, [running, gameId])
-
-  // Periodic save while clock running
   useEffect(() => {
     if (!running) return
     const t = setInterval(() => save(), 8000)
     return () => clearInterval(t)
   }, [running, save])
 
-  // ── Core stat updater (all inline, no async gap) ───────
+
   const applyStatChange = useCallback((side, pid, buildNext) => {
     const isHome   = side === 'home'
     const setter   = isHome ? setHomeStats : setAwayStats
     const myRef    = isHome ? homeStatsRef : awayStatsRef
     const otherRef = isHome ? awayStatsRef : homeStatsRef
     const myQSRef  = isHome ? homeQSRef    : awayQSRef
+    const otQSRef  = isHome ? awayQSRef    : homeQSRef
 
     let newHomeQS = null
     let newAwayQS = null
@@ -493,31 +485,43 @@ export default function LiveScorer() {
       const old      = prev[pid] || {}
       const next     = buildNext(old)
       const isScore  = ['fgMade','threePtMade','ftMade'].includes(next._changedKey)
+
+      // Remove internal tag
       delete next._changedKey
 
       const newMap = { ...prev, [pid]: next }
 
       if (isScore) {
-        const myPts  = sumMapPts(newMap)
-        const qKey   = QKEY(curQRef.current)
-        const prevQS = myQSRef.current
-        const others = Object.entries(prevQS).filter(([k])=>k!==qKey).reduce((a,[,v])=>a+v,0)
-        const newQS  = { ...prevQS, [qKey]: Math.max(0, myPts - others) }
+        // ── 1. New team total from updated map ──────────
+        const myPts = sumMapPts(newMap)
+
+        // ── 2. New QS: set current quarter, keep others ─
+        const qKey    = QKEY(curQRef.current)
+        const prevQS  = myQSRef.current
+        const others  = Object.entries(prevQS)
+          .filter(([k]) => k !== qKey)
+          .reduce((a, [, v]) => a + v, 0)
+        const newQS   = { ...prevQS, [qKey]: Math.max(0, myPts - others) }
+
         myQSRef.current = newQS
 
-        const hPts = isHome ? sumQS(newQS) : sumQS(homeQSRef.current)
+        const hPts = isHome ? sumQS(newQS)         : sumQS(homeQSRef.current)
         const aPts = isHome ? sumQS(awayQSRef.current) : sumQS(newQS)
 
-        const myPatched    = recalcPM(newMap, side, hPts, aPts, pmEntryRef.current)
-        const otherPatched = recalcPM(otherRef.current, isHome?'away':'home', hPts, aPts, pmEntryRef.current)
+        const myPatched    = recalcPM(newMap,            side,                   hPts, aPts, pmEntryRef.current)
+        const otherPatched = recalcPM(otherRef.current,  isHome ? 'away':'home', hPts, aPts, pmEntryRef.current)
+
         myRef.current = myPatched
+
         if (otherPatched !== otherRef.current) {
           otherRef.current = otherPatched
-          if (isHome) setAwayStats(otherPatched); else setHomeStats(otherPatched)
+          if (isHome) setAwayStats(otherPatched)
+          else        setHomeStats(otherPatched)
         }
 
         newHomeQS = isHome ? newQS : homeQSRef.current
         newAwayQS = isHome ? awayQSRef.current : newQS
+
         return myPatched
       }
 
@@ -527,164 +531,231 @@ export default function LiveScorer() {
 
     if (newHomeQS) setHomeQS(newHomeQS)
     if (newAwayQS) setAwayQS(newAwayQS)
+
     save()
   }, [save])
 
+  // ── incStat ───────────────────────────────────────────
   const incStat = useCallback((side, pid, key) => {
     applyStatChange(side, pid, (old) => {
-      const next = { ...old, [key]: (old[key]||0)+1, _changedKey: key }
-      if (key==='fgMade')      { next.fgAttempts=(old.fgAttempts||0)+1 }
-      if (key==='threePtMade') { next.threePtAttempts=(old.threePtAttempts||0)+1; next.fgMade=(old.fgMade||0)+1; next.fgAttempts=(old.fgAttempts||0)+1 }
-      if (key==='ftMade')      { next.ftAttempts=(old.ftAttempts||0)+1 }
-      if (['fgMade','threePtMade','ftMade'].includes(key)) next.points = calcPts(next)
-      if (key==='offRebounds'||key==='defRebounds') next.totalRebounds=(next.offRebounds||0)+(next.defRebounds||0)
-      if (key==='personalFouls') {
-        setTeamFouls(tf => { const q=curQRef.current; const u={...tf,[side]:{...tf[side],[q]:(tf[side][q]||0)+1}}; tfRef.current=u; return u })
+      const next = { ...old, [key]: (old[key]||0) + 1, _changedKey: key }
+
+      if (key === 'fgMade')      { next.fgAttempts      = (old.fgAttempts     ||0)+1 }
+      if (key === 'threePtMade') {
+        next.threePtAttempts = (old.threePtAttempts||0)+1
+        next.fgMade          = (old.fgMade         ||0)+1
+        next.fgAttempts      = (old.fgAttempts     ||0)+1
+      }
+      if (key === 'ftMade')      { next.ftAttempts = (old.ftAttempts||0)+1 }
+
+      if (['fgMade','threePtMade','ftMade'].includes(key)) {
+        next.points = calcPts(next)
+      }
+      if (key === 'offRebounds' || key === 'defRebounds') {
+        next.totalRebounds = (next.offRebounds||0) + (next.defRebounds||0)
+      }
+      if (key === 'personalFouls') {
+        setTeamFouls(tf => {
+          const q = curQRef.current
+          const u = { ...tf, [side]: { ...tf[side], [q]: (tf[side][q]||0)+1 } }
+          tfRef.current = u; return u
+        })
       }
       return next
     })
   }, [applyStatChange])
 
+  // ── decStat ───────────────────────────────────────────
   const decStat = useCallback((side, pid, key) => {
     applyStatChange(side, pid, (old) => {
       const next = { ...old, [key]: Math.max(0,(old[key]||0)-1), _changedKey: key }
-      if (['fgMade','threePtMade','ftMade'].includes(key)) next.points = calcPts(next)
-      if (key==='offRebounds'||key==='defRebounds') next.totalRebounds=(next.offRebounds||0)+(next.defRebounds||0)
-      if (key==='personalFouls'&&(old[key]||0)>0) {
-        setTeamFouls(tf => { const q=curQRef.current; const u={...tf,[side]:{...tf[side],[q]:Math.max(0,(tf[side][q]||0)-1)}}; tfRef.current=u; return u })
+
+      if (['fgMade','threePtMade','ftMade'].includes(key)) {
+        next.points = calcPts(next)
+      }
+      if (key === 'offRebounds' || key === 'defRebounds') {
+        next.totalRebounds = (next.offRebounds||0) + (next.defRebounds||0)
+      }
+      if (key === 'personalFouls' && (old[key]||0) > 0) {
+        setTeamFouls(tf => {
+          const q = curQRef.current
+          const u = { ...tf, [side]: { ...tf[side], [q]: Math.max(0,(tf[side][q]||0)-1) } }
+          tfRef.current = u; return u
+        })
       }
       return next
     })
   }, [applyStatChange])
 
-  // ── Scoreboard manual buttons ──────────────────────────
+  // ── Scoreboard manual +/- buttons ────────────────────
   const addQPts = useCallback((side, pts) => {
-    const isHome = side==='home'; const qKey=QKEY(curQRef.current)
+    const isHome = side === 'home'
+    const qKey   = QKEY(curQRef.current)
     const qsRef  = isHome ? homeQSRef : awayQSRef
-    const newQS  = { ...qsRef.current, [qKey]: (qsRef.current[qKey]||0)+pts }
+    const newQS  = { ...qsRef.current, [qKey]: (qsRef.current[qKey]||0) + pts }
     qsRef.current = newQS
     if (isHome) setHomeQS(newQS); else setAwayQS(newQS)
-    const hPts=sumQS(homeQSRef.current); const aPts=sumQS(awayQSRef.current)
-    setHomeStats(prev=>{const n=recalcPM(prev,'home',hPts,aPts,pmEntryRef.current);homeStatsRef.current=n;return n})
-    setAwayStats(prev=>{const n=recalcPM(prev,'away',hPts,aPts,pmEntryRef.current);awayStatsRef.current=n;return n})
+
+    const hPts = sumQS(homeQSRef.current)
+    const aPts = sumQS(awayQSRef.current)
+    setHomeStats(prev => { const n=recalcPM(prev,'home',hPts,aPts,pmEntryRef.current); homeStatsRef.current=n; return n })
+    setAwayStats(prev => { const n=recalcPM(prev,'away',hPts,aPts,pmEntryRef.current); awayStatsRef.current=n; return n })
     save()
   }, [save])
 
   const subQPts = useCallback((side) => {
-    const isHome=side==='home'; const qKey=QKEY(curQRef.current)
-    const qsRef=isHome?homeQSRef:awayQSRef
-    const newQS={...qsRef.current,[qKey]:Math.max(0,(qsRef.current[qKey]||0)-1)}
-    qsRef.current=newQS
-    if(isHome) setHomeQS(newQS); else setAwayQS(newQS)
-    const hPts=sumQS(homeQSRef.current);const aPts=sumQS(awayQSRef.current)
-    setHomeStats(prev=>{const n=recalcPM(prev,'home',hPts,aPts,pmEntryRef.current);homeStatsRef.current=n;return n})
-    setAwayStats(prev=>{const n=recalcPM(prev,'away',hPts,aPts,pmEntryRef.current);awayStatsRef.current=n;return n})
+    const isHome = side === 'home'
+    const qKey   = QKEY(curQRef.current)
+    const qsRef  = isHome ? homeQSRef : awayQSRef
+    const newQS  = { ...qsRef.current, [qKey]: Math.max(0,(qsRef.current[qKey]||0)-1) }
+    qsRef.current = newQS
+    if (isHome) setHomeQS(newQS); else setAwayQS(newQS)
+
+    const hPts = sumQS(homeQSRef.current)
+    const aPts = sumQS(awayQSRef.current)
+    setHomeStats(prev => { const n=recalcPM(prev,'home',hPts,aPts,pmEntryRef.current); homeStatsRef.current=n; return n })
+    setAwayStats(prev => { const n=recalcPM(prev,'away',hPts,aPts,pmEntryRef.current); awayStatsRef.current=n; return n })
     save()
   }, [save])
 
   const addTF = useCallback((side) => {
-    setTeamFouls(tf=>{const q=curQRef.current;const u={...tf,[side]:{...tf[side],[q]:(tf[side][q]||0)+1}};tfRef.current=u;return u}); save()
+    setTeamFouls(tf => {
+      const q=curQRef.current; const u={...tf,[side]:{...tf[side],[q]:(tf[side][q]||0)+1}}
+      tfRef.current=u; return u
+    }); save()
   }, [save])
 
   const subTF = useCallback((side) => {
-    setTeamFouls(tf=>{const q=curQRef.current;const u={...tf,[side]:{...tf[side],[q]:Math.max(0,(tf[side][q]||0)-1)}};tfRef.current=u;return u}); save()
+    setTeamFouls(tf => {
+      const q=curQRef.current; const u={...tf,[side]:{...tf[side],[q]:Math.max(0,(tf[side][q]||0)-1)}}
+      tfRef.current=u; return u
+    }); save()
   }, [save])
 
-  // ── Quarter change ─────────────────────────────────────
+  // ── Quarter change ────────────────────────────────────
   const changeQuarter = useCallback((q) => {
-    setCurQ(q); curQRef.current=q
-    setClockSecs(QUARTER_DURATION); clockSecRef.current=QUARTER_DURATION
+    setCurQ(q); curQRef.current = q
+    setClockSecs(QUARTER_DURATION); clockSecRef.current = QUARTER_DURATION
     setRunning(false)
-    // Broadcast the quarter change + pause to other scorers immediately
-    socketRef.current?.emit('clockUpdate', { gameId, running:false, clockSecs:QUARTER_DURATION, currentQuarter:q })
     addToast(`Q${q===5?'OT':q} — team fouls reset`, 'info')
     save()
-  }, [save, gameId])
+  }, [save])
 
-  // ── Toggle on-court ────────────────────────────────────
+  // ── Toggle on-court ───────────────────────────────────
   const toggleCourt = useCallback((side, pid) => {
-    const isHome=side==='home'; const setter=isHome?setHomeStats:setAwayStats; const myRef=isHome?homeStatsRef:awayStatsRef
+    const isHome = side === 'home'
+    const setter = isHome ? setHomeStats : setAwayStats
+    const myRef  = isHome ? homeStatsRef : awayStatsRef
+
     setter(prev => {
-      const wasOn=prev[pid]?.onCourt||false
-      const next={...prev,[pid]:{...prev[pid],onCourt:!wasOn}}
+      const wasOn = prev[pid]?.onCourt || false
+      const next  = { ...prev, [pid]: { ...prev[pid], onCourt: !wasOn } }
+
       if (!wasOn) {
-        pmEntryRef.current.set(pid,{homeScore:sumQS(homeQSRef.current),awayScore:sumQS(awayQSRef.current)})
-        next[pid]={...next[pid],plusMinus:0}
+        // Entering — record current score as +/- baseline
+        pmEntryRef.current.set(pid, {
+          homeScore: sumQS(homeQSRef.current),
+          awayScore: sumQS(awayQSRef.current),
+        })
+        // Reset their +/- to 0 when stepping on
+        next[pid] = { ...next[pid], plusMinus: 0 }
       } else {
-        const e=pmEntryRef.current.get(pid)
+        // Leaving — freeze current +/- value
+        const e = pmEntryRef.current.get(pid)
         if (e) {
-          const hPts=sumQS(homeQSRef.current);const aPts=sumQS(awayQSRef.current)
-          const pm=side==='home'?(hPts-e.homeScore)-(aPts-e.awayScore):(aPts-e.awayScore)-(hPts-e.homeScore)
-          next[pid]={...next[pid],plusMinus:pm}
+          const hPts = sumQS(homeQSRef.current)
+          const aPts = sumQS(awayQSRef.current)
+          const pm   = side === 'home'
+            ? (hPts - e.homeScore) - (aPts - e.awayScore)
+            : (aPts - e.awayScore) - (hPts - e.homeScore)
+          next[pid] = { ...next[pid], plusMinus: pm }
         }
       }
-      myRef.current=next
-      persistCourt(isHome?next:homeStatsRef.current, isHome?awayStatsRef.current:next)
+
+      myRef.current = next
+      persistCourt(isHome ? next : homeStatsRef.current,
+                   isHome ? awayStatsRef.current : next)
       return next
     })
     save()
   }, [persistCourt, save])
 
-  // ── Drag & drop ────────────────────────────────────────
-  const startDrag = (pid,side) => { setDragPid(pid); setDragSide(side) }
-  const overDrag  = (e,pid)   => { e.preventDefault(); setDragOver(pid) }
-  const endDrag   = ()        => { setDragPid(null); setDragSide(null); setDragOver(null) }
+  // ── Drag & drop ───────────────────────────────────────
+  const startDrag  = (pid, side) => { setDragPid(pid); setDragSide(side) }
+  const overDrag   = (e, pid)    => { e.preventDefault(); setDragOver(pid) }
+  const endDrag    = ()          => { setDragPid(null); setDragSide(null); setDragOver(null) }
 
   const dropOnPlayer = useCallback((e, targetPid, side) => {
     e.preventDefault()
-    if (!dragPid||dragSide!==side||dragPid===targetPid) { endDrag(); return }
-    const setter=side==='home'?setHomeStats:setAwayStats
+    if (!dragPid || dragSide !== side || dragPid === targetPid) { endDrag(); return }
+    const setter = side === 'home' ? setHomeStats : setAwayStats
     setter(prev => {
-      const next={...prev,[dragPid]:{...prev[dragPid],onCourt:prev[targetPid]?.onCourt},[targetPid]:{...prev[targetPid],onCourt:prev[dragPid]?.onCourt}}
-      if(side==='home')homeStatsRef.current=next;else awayStatsRef.current=next
-      persistCourt(side==='home'?next:homeStatsRef.current,side==='away'?next:awayStatsRef.current)
+      const next = {
+        ...prev,
+        [dragPid]:   { ...prev[dragPid],   onCourt: prev[targetPid]?.onCourt },
+        [targetPid]: { ...prev[targetPid], onCourt: prev[dragPid]?.onCourt   },
+      }
+      if (side==='home') homeStatsRef.current=next; else awayStatsRef.current=next
+      persistCourt(side==='home'?next:homeStatsRef.current, side==='away'?next:awayStatsRef.current)
       return next
     })
     endDrag(); save()
-  }, [dragPid,dragSide,persistCourt,save])
+  }, [dragPid, dragSide, persistCourt, save])
 
   const dropZone = useCallback((e, zone, side) => {
     e.preventDefault()
-    if (!dragPid||dragSide!==side) { endDrag(); return }
-    const setter=side==='home'?setHomeStats:setAwayStats
+    if (!dragPid || dragSide !== side) { endDrag(); return }
+    const setter = side === 'home' ? setHomeStats : setAwayStats
     setter(prev => {
-      const next={...prev,[dragPid]:{...prev[dragPid],onCourt:zone==='court'}}
-      if(side==='home')homeStatsRef.current=next;else awayStatsRef.current=next
-      persistCourt(side==='home'?next:homeStatsRef.current,side==='away'?next:awayStatsRef.current)
+      const next = { ...prev, [dragPid]: { ...prev[dragPid], onCourt: zone==='court' } }
+      if (side==='home') homeStatsRef.current=next; else awayStatsRef.current=next
+      persistCourt(side==='home'?next:homeStatsRef.current, side==='away'?next:awayStatsRef.current)
       return next
     })
     endDrag(); save()
-  }, [dragPid,dragSide,persistCourt,save])
+  }, [dragPid, dragSide, persistCourt, save])
 
-  // ── Finalize ───────────────────────────────────────────
+  // ── Finalize ──────────────────────────────────────────
   const finalize = useCallback(async () => {
     setShowConfirm(false)
     try {
-      const markDNP=(m)=>{const n={...m};Object.keys(n).forEach(pid=>{if((n[pid]._secondsPlayed||0)===0)n[pid]={...n[pid],didNotPlay:true}});return n}
-      const fh=markDNP(homeStatsRef.current);const fa=markDNP(awayStatsRef.current)
-      const hq=homeQSRef.current;const aq=awayQSRef.current
-      await updateGame(gameId,{status:'final',homeScore:sumQS(hq),awayScore:sumQS(aq),homeQuarterScores:hq,awayQuarterScores:aq,gameClock:'00:00'})
-      await bulkUpsertStats(gameId,[...Object.values(fh),...Object.values(fa)].map(toApi))
-      try{localStorage.removeItem(STORAGE_KEY(gameId))}catch{}
-      socketRef.current?.emit('scoreboardUpdate',{game:{status:'final'}})
-      addToast('Game finalized! 🏆','success')
+      const markDNP = (m) => {
+        const n = { ...m }
+        Object.keys(n).forEach(pid => {
+          if ((n[pid]._secondsPlayed||0) === 0) n[pid] = { ...n[pid], didNotPlay:true }
+        })
+        return n
+      }
+      const fh = markDNP(homeStatsRef.current)
+      const fa = markDNP(awayStatsRef.current)
+      const hq = homeQSRef.current; const aq = awayQSRef.current
+      await updateGame(gameId, {
+        status:'final', homeScore:sumQS(hq), awayScore:sumQS(aq),
+        homeQuarterScores:hq, awayQuarterScores:aq, gameClock:'00:00',
+      })
+      await bulkUpsertStats(gameId, [...Object.values(fh),...Object.values(fa)].map(toApi))
+      try { localStorage.removeItem(STORAGE_KEY(gameId)) } catch {}
+      socketRef.current?.emit('scoreboardUpdate', { game:{ status:'final' } })
+      addToast('Game finalized! 🏆', 'success')
       navigate('/games')
-    } catch { addToast('Failed to finalize','error') }
+    } catch { addToast('Failed to finalize', 'error') }
   }, [gameId, navigate])
 
-  // ── Derived ────────────────────────────────────────────
+  // ── Derived ───────────────────────────────────────────
   const homeTotal = sumQS(homeQS)
   const awayTotal = sumQS(awayQS)
-  const homeFouls = teamFouls.home[curQ]||0
-  const awayFouls = teamFouls.away[curQ]||0
-  const qLabel    = ['1ST','2ND','3RD','4TH','OT'][curQ-1]||`Q${curQ}`
-  const curStats  = activeTeam==='home'?homeStats:awayStats
-  const curPList  = activeTeam==='home'?homePlayers:awayPlayers
+  const homeFouls = teamFouls.home[curQ] || 0
+  const awayFouls = teamFouls.away[curQ] || 0
+  const qLabel    = ['1ST','2ND','3RD','4TH','OT'][curQ-1] || `Q${curQ}`
+
+  const curStats  = activeTeam==='home' ? homeStats  : awayStats
+  const curPList  = activeTeam==='home' ? homePlayers : awayPlayers
   const curSide   = activeTeam
-  const onCourt   = curPList.filter(p=> curStats[p._id]?.onCourt&&!curStats[p._id]?.didNotPlay)
-  const bench     = curPList.filter(p=>!curStats[p._id]?.onCourt&&!curStats[p._id]?.didNotPlay)
-  const homeOnCnt = homePlayers.filter(p=>homeStats[p._id]?.onCourt).length
-  const awayOnCnt = awayPlayers.filter(p=>awayStats[p._id]?.onCourt).length
+
+  const onCourt   = curPList.filter(p =>  curStats[p._id]?.onCourt && !curStats[p._id]?.didNotPlay)
+  const bench     = curPList.filter(p => !curStats[p._id]?.onCourt && !curStats[p._id]?.didNotPlay)
+  const homeOnCnt = homePlayers.filter(p => homeStats[p._id]?.onCourt).length
+  const awayOnCnt = awayPlayers.filter(p => awayStats[p._id]?.onCourt).length
 
   if (loading) return (
     <div style={{padding:32}}>
@@ -710,20 +781,22 @@ export default function LiveScorer() {
         />
       )}
 
-      {/* Top bar */}
+      {/* ── Top bar ──────────────────────────────── */}
       <div className="scorer-topbar">
         <div className="scorer-topbar__left">
           <Link to="/games" className="scorer-topbar__back">← Back</Link>
           <span className="scorer-topbar__title">
-            {game.awayTeam?.abbreviation}<span className="scorer-topbar__vs"> @ </span>{game.homeTeam?.abbreviation}
+            {game.awayTeam?.abbreviation}
+            <span className="scorer-topbar__vs"> @ </span>
+            {game.homeTeam?.abbreviation}
           </span>
           <span className="badge badge-live"><span className="live-dot"/>LIVE · {qLabel}</span>
           <span className="scorer-topbar__autosave">● Auto-saving</span>
         </div>
-        <button onClick={()=>setShowConfirm(true)} className="btn btn-green btn-sm">✓ Finalize</button>
+        <button onClick={() => setShowConfirm(true)} className="btn btn-green btn-sm">✓ Finalize</button>
       </div>
 
-      {/* Scoreboard */}
+      {/* ── Scoreboard ───────────────────────────── */}
       <div className="scorer-board">
         {/* Away */}
         <div className="scorer-board__team scorer-board__team--away">
@@ -732,15 +805,15 @@ export default function LiveScorer() {
             <span className={`scorer-board__score${awayTotal>homeTotal?' scorer-board__score--leading':''}`}>{awayTotal}</span>
             <div className="scorer-board__controls">
               <div className="scorer-board__pts-btns">
-                <button className="sc-btn sc-btn--red" onClick={()=>subQPts('away')}>−1</button>
-                {[1,2,3].map(n=><button key={n} className="sc-btn" onClick={()=>addQPts('away',n)}>+{n}</button>)}
+                <button className="sc-btn sc-btn--red" onClick={() => subQPts('away')}>−1</button>
+                {[1,2,3].map(n => <button key={n} className="sc-btn" onClick={() => addQPts('away',n)}>+{n}</button>)}
               </div>
               <div className="scorer-board__fouls-row">
                 <span className="scorer-board__fouls-label">FOULS Q{curQ}:</span>
-                <button className="sc-foul-btn" onClick={()=>subTF('away')}>−</button>
+                <button className="sc-foul-btn" onClick={() => subTF('away')}>−</button>
                 <span className={`scorer-board__foul-count${awayFouls>=5?' scorer-board__foul-count--bonus':''}`}>{awayFouls}</span>
-                <button className="sc-foul-btn" onClick={()=>addTF('away')}>+</button>
-                {awayFouls>=5&&<span className="scorer-board__bonus-tag">BONUS</span>}
+                <button className="sc-foul-btn" onClick={() => addTF('away')}>+</button>
+                {awayFouls>=5 && <span className="scorer-board__bonus-tag">BONUS</span>}
               </div>
             </div>
           </div>
@@ -758,7 +831,7 @@ export default function LiveScorer() {
         <div className="scorer-clock">
           <button
             className={`scorer-clock__btn${running?' scorer-clock__btn--running':clockSecs===0?' scorer-clock__btn--ended':''}`}
-            onClick={()=>setRunning(r=>!r)}
+            onClick={() => setRunning(r=>!r)}
             title="SPACE to toggle"
           >{fmtClock(clockSecs)}</button>
           <div className="scorer-clock__hint">{running?'▶ SPACE TO PAUSE':'⏸ SPACE TO START'}</div>
@@ -769,7 +842,7 @@ export default function LiveScorer() {
               </button>
             ))}
           </div>
-          <button className="scorer-clock__reset" onClick={()=>{setRunning(false);setClockSecs(QUARTER_DURATION);clockSecRef.current=QUARTER_DURATION;socketRef.current?.emit('clockUpdate',{gameId,running:false,clockSecs:QUARTER_DURATION,currentQuarter:curQRef.current})}}>↺ Reset</button>
+          <button className="scorer-clock__reset" onClick={()=>{setRunning(false);setClockSecs(QUARTER_DURATION);clockSecRef.current=QUARTER_DURATION}}>↺ Reset</button>
         </div>
 
         {/* Home */}
@@ -782,7 +855,7 @@ export default function LiveScorer() {
                 <button className="sc-btn sc-btn--red" onClick={()=>subQPts('home')}>−1</button>
               </div>
               <div className="scorer-board__fouls-row scorer-board__fouls-row--right">
-                {homeFouls>=5&&<span className="scorer-board__bonus-tag">BONUS</span>}
+                {homeFouls>=5 && <span className="scorer-board__bonus-tag">BONUS</span>}
                 <button className="sc-foul-btn" onClick={()=>subTF('home')}>−</button>
                 <span className={`scorer-board__foul-count${homeFouls>=5?' scorer-board__foul-count--bonus':''}`}>{homeFouls}</span>
                 <button className="sc-foul-btn" onClick={()=>addTF('home')}>+</button>
@@ -802,8 +875,9 @@ export default function LiveScorer() {
         </div>
       </div>
 
-      {/* Body */}
+      {/* ── Body ─────────────────────────────────── */}
       <div className="scorer-body">
+        {/* Team tabs */}
         <div className="scorer-tabs">
           {[{key:'away',team:game.awayTeam,count:awayOnCnt},{key:'home',team:game.homeTeam,count:homeOnCnt}].map(({key,team:t,count})=>(
             <button key={key} className={`scorer-tab${activeTeam===key?' scorer-tab--active':''}`} onClick={()=>setActiveTeam(key)}>
@@ -816,12 +890,13 @@ export default function LiveScorer() {
         <div className="scorer-split">
           {/* Roster panel */}
           <div className="roster-panel">
+            {/* On Court */}
             <div className="roster-zone roster-zone--court" onDragOver={e=>e.preventDefault()} onDrop={e=>dropZone(e,'court',curSide)}>
               <div className="roster-zone__label roster-zone__label--court">
                 <span className="roster-zone__dot"/>ON COURT ({onCourt.length}/5)
               </div>
               {onCourt.map(p=>{
-                const s=curStats[p._id];const sp=s?._secondsPlayed||0
+                const s=curStats[p._id]; const sp=s?._secondsPlayed||0
                 return (
                   <div key={p._id} draggable
                     onDragStart={()=>startDrag(p._id,curSide)} onDragOver={e=>overDrag(e,p._id)}
@@ -837,8 +912,9 @@ export default function LiveScorer() {
                   </div>
                 )
               })}
-              {onCourt.length===0&&<div className="roster-zone__empty">Drag or click to add</div>}
+              {onCourt.length===0 && <div className="roster-zone__empty">Drag or click to add</div>}
             </div>
+            {/* Bench */}
             <div className="roster-zone roster-zone--bench" onDragOver={e=>e.preventDefault()} onDrop={e=>dropZone(e,'bench',curSide)}>
               <div className="roster-zone__label">BENCH ({bench.length})</div>
               {bench.map(p=>{
@@ -873,25 +949,25 @@ export default function LiveScorer() {
                 </tr>
               </thead>
               <tbody>
-                {onCourt.length>0&&(
+                {onCourt.length > 0 && (
                   <tr className="section-header section-header--court">
                     <td colSpan={COLS.length+1}>⬤ On Court</td>
                   </tr>
                 )}
-                {onCourt.map(p=>(
+                {onCourt.map(p => (
                   <PlayerRow key={p._id} player={p}
-                    s={curStats[p._id]||mkBlank(p,game[`${curSide}Team`]?._id,true)}
+                    s={curStats[p._id] || mkBlank(p, game[`${curSide}Team`]?._id, true)}
                     isOn={true} side={curSide} onInc={incStat} onDec={decStat}
                   />
                 ))}
-                {bench.length>0&&(
+                {bench.length > 0 && (
                   <tr className="section-header section-header--bench">
                     <td colSpan={COLS.length+1}>— Bench</td>
                   </tr>
                 )}
-                {bench.map(p=>(
+                {bench.map(p => (
                   <PlayerRow key={p._id} player={p}
-                    s={curStats[p._id]||mkBlank(p,game[`${curSide}Team`]?._id,false)}
+                    s={curStats[p._id] || mkBlank(p, game[`${curSide}Team`]?._id, false)}
                     isOn={false} side={curSide} onInc={incStat} onDec={decStat}
                   />
                 ))}
